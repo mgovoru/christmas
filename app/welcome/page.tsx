@@ -1,83 +1,103 @@
 'use client';
-import React, { useRef, useEffect } from 'react';
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import Model from '@/components/model/page';
+import { Button } from 'antd';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
-export default function GltfViewer({
-  gltfUrl = '/room/scene.gltf',
-  width = 1920,
-  height = 1200,
-}) {
-  const mountRef = useRef<HTMLDivElement>(null);
+export default function Welcome() {
+  const [videoStarted, setVideoStarted] = useState(false); // видео уже запущено?
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const router = useRouter();
+
+  // Принудительный запуск видео
+  const startVideo = () => {
+    const video = videoRef.current;
+    if (video && !videoStarted) {
+      video
+        .play()
+        .then(() => {
+          setVideoStarted(true);
+        })
+        .catch((err) => {
+          console.warn('Не удалось запустить видео:', err);
+          // setVideoStarted(true); // всё равно считаем, что "попытались"
+        });
+    }
+  };
 
   useEffect(() => {
-    let gltfScene: THREE.Object3D | null = null;
-    let mixer: THREE.AnimationMixer | null = null;
-    const clock = new THREE.Clock();
+    startVideo();
+  }, []);
 
-    if (!mountRef.current) return;
+  const movePage = () => {
+    router.push('master');
+  };
 
-    // Сцена
-    const scene = new THREE.Scene();
+  return (
+    <>
+      {/* Видео */}
+      <video
+        ref={videoRef}
+        muted
+        loop
+        playsInline
+        preload='metadata'
+        src='/Snow_Winter.mp4'
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: -1,
+        }}
+      />
 
-    // Камера
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 5);
+      {/* 🔥 Триггер запуска видео — поверх всего */}
+      {!videoStarted && (
+        <div
+          onClick={startVideo}
+          onTouchStart={startVideo}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 9999,
+            background: 'transparent', // можно сделать слегка затемнённым для UX
+            cursor: 'pointer',
+          }}
+        />
+      )}
 
-    // Рендерер
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
-    mountRef.current.appendChild(renderer.domElement);
-
-    // Орбитальные контролы
-    const controls = new OrbitControls(camera, renderer.domElement);
-
-    // Свет
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
-
-    // Загрузка glTF
-    const loader = new GLTFLoader();
-    loader.load(
-      gltfUrl,
-      (gltf) => {
-        gltfScene = gltf.scene;
-        scene.add(gltf.scene);
-
-        // --- Работа с анимацией! ---
-        if (gltf.animations && gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(gltf.scene);
-          gltf.animations.forEach((clip) => {
-            mixer?.clipAction(clip).play();
-          });
-        }
-      },
-      undefined,
-      (error) => {
-        console.error('Ошибка загрузки glTF:', error);
-      }
-    );
-
-    // Анимация
-    const animate = () => {
-      requestAnimationFrame(animate);
-      controls.update();
-      if (mixer) {
-        mixer.update(clock.getDelta());
-      }
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    // Очистка
-    return () => {
-      if (gltfScene) scene.remove(gltfScene);
-      mountRef.current?.removeChild(renderer.domElement);
-      renderer.dispose();
-      controls.dispose();
-    };
-  }, [gltfUrl, width, height]);
-
-  return <div ref={mountRef} style={{ width, height }} />;
+      <div className='flex items-center justify-center flex-col gap-8'>
+        {' '}
+        <Model />
+        <p
+          style={{
+            color: 'red',
+            fontWeight: '700',
+            fontSize: '16px',
+          }}
+        >
+          Санта вращается касанием
+        </p>
+        <Button
+          type='primary'
+          style={{
+            color: '#fff',
+            fontWeight: '700',
+            fontSize: '16px',
+            backgroundColor: 'red',
+            height: '36px',
+          }}
+          onClick={movePage}
+        >
+          <p>Нажимай на кнопку, чтобы увидеть куда прилетит Санта </p>
+        </Button>
+      </div>
+    </>
+  );
 }

@@ -1,93 +1,123 @@
 'use client';
-import React from 'react';
+
+import React, { useState } from 'react';
 import type { FormProps } from 'antd';
-import { Button, Checkbox, Form, Input } from 'antd';
+import { Button, Form, Input, message } from 'antd';
+import { useRouter } from 'next/navigation';
+
+
 
 type FieldType = {
   username?: string;
   password?: string;
-  remember?: string;
 };
 
-const onFinish: FormProps<FieldType>['onFinish'] = (values) => {
-  console.log('Success:', values);
-};
+const FormLogin: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-const onFinishFailed: FormProps<FieldType>['onFinishFailed'] = (errorInfo) => {
-  console.log('Failed:', errorInfo);
-};
 
-const FormLogin: React.FC = () => (
-  <Form
-    name='basic'
-    labelCol={{ span: 24 }}
-    wrapperCol={{ span: 24 }}
-    style={{ width: '40vw' }}
-    initialValues={{ remember: true }}
-    onFinish={onFinish}
-    onFinishFailed={onFinishFailed}
-    autoComplete='off'
-    layout='vertical'
-  >
-    <Form.Item<FieldType>
-      label={
-        <span
-          style={{
-            marginBottom: '6px',
-            color: '#fff',
-            fontWeight: '700',
-            fontSize: '22px',
-          }}
-        >
-          Кристина, введи логин
-        </span>
+  const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: values.username,
+          pass: values.password,
+        }),
+      });
+
+      if (res.ok) {
+        message.success('Добро пожаловать, Кристина! 🎄');
+        // Обновляем сессию и переходим на главную
+
+         setTimeout(() => {
+           // window.location.href = '/welcome';
+           
+           router.push('/welcome');
+         }, 500);
+      } else {
+        message.error('Неверный логин или пароль 😢');
       }
-      name='username'
-      rules={[{ required: true, message: 'Please input your username!' }]}
-    >
-      <Input />
-    </Form.Item>
+    } catch (err) {
+      message.error('Ошибка соединения');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    <Form.Item<FieldType>
-      label={
-        <span
+  return (
+    <Form
+      name='basic'
+      labelCol={{ span: 24 }}
+      wrapperCol={{ span: 24 }}
+      style={{ width: '90vw', maxWidth: '400px' }}
+      initialValues={{ remember: true }}
+      onFinish={onFinish}
+      autoComplete='off'
+      layout='vertical'
+    >
+      <Form.Item<FieldType>
+        label={
+          <span
+            style={{
+              marginBottom: '6px',
+              color: '#fff',
+              fontWeight: '700',
+              fontSize: '22px',
+            }}
+          >
+            Кристина, введи логин
+          </span>
+        }
+        name='username'
+        rules={[{ required: true, message: 'Пожалуйста, введи логин!' }]}
+      >
+        <Input size='large' />
+      </Form.Item>
+
+      <Form.Item<FieldType>
+        label={
+          <span
+            style={{
+              marginBottom: '6px',
+              color: '#fff',
+              fontWeight: '700',
+              fontSize: '22px',
+            }}
+          >
+            Кристина, введи пароль
+          </span>
+        }
+        name='password'
+        rules={[{ required: true, message: 'Пожалуйста, введи пароль!' }]}
+      >
+        <Input.Password size='large' />
+      </Form.Item>
+
+      <Form.Item>
+        <Button
+          type='primary'
+          htmlType='submit'
+          loading={loading}
           style={{
-            marginBottom: '6px',
             color: '#fff',
             fontWeight: '700',
-            fontSize: '22px',
+            fontSize: '20px',
+            backgroundColor: 'red',
+            height: '48px',
             width: '100%',
           }}
         >
-          Кристина, введи пароль
-        </span>
-      }
-      name='password'
-      rules={[{ required: true, message: 'Please input your password!' }]}
-    >
-      <Input.Password />
-    </Form.Item>
-
-    {/* <Form.Item<FieldType> name='remember' valuePropName='checked' label={null}>
-      <Checkbox>Remember me</Checkbox>
-    </Form.Item> */}
-
-    <Form.Item label={null}>
-      <Button
-        type='primary'
-        htmlType='submit'
-        style={{
-          color: '#fff',
-          fontWeight: '700',
-          fontSize: '20px',
-					backgroundColor: 'red',
-					height:'36px'
-        }}
-      >
-        Нажимай, чтобы войти
-      </Button>
-    </Form.Item>
-  </Form>
-);
+          Нажимай, чтобы войти
+        </Button>
+      </Form.Item>
+    </Form>
+  );
+};
 
 export default FormLogin;
